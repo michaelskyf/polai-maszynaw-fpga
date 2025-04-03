@@ -6,7 +6,7 @@ all: top.fs
 
 # Synthesis
 top.json: top.sv
-	yosys -p "read_verilog -sv top.sv led_driver.sv; synth_gowin -top top -json top.json"
+	yosys -p "read_verilog -sv top.sv; synth_gowin -top top -json top.json"
 
 # Place and Route
 top_pnr.json: top.json
