@@ -1,194 +1,278 @@
 `include "i2c_master.sv"
-`include "led_driver.sv"
-
-`default_nettype none
+`include "led_controller.sv"
 
 module top (
     input  clk_27M,
     output logic led_out,
     output logic [5:0] leds,
 
-    inout  wire       i2c_scl_pin,  // Declare I2C SCL as inout
-    inout  wire       i2c_sda_pin   // Declare I2C SDA as inout
+    inout  wire       i2c_scl_pin,  // I2C SCL
+    inout  wire       i2c_sda_pin   // I2C SDA
 );
 
-  // Clock frequency and 500-ms delay calculation.
-  localparam CLK_FREQ     = 27000000;
-  localparam NUM_LEDS     = 144;         // Number of LEDs in the chain
-  localparam DELAY_CYCLES = CLK_FREQ/(NUM_LEDS);
+    // Reset generation
+    logic reset = 1'b1;
+    logic [3:0] reset_counter = 4'd0;
+    always_ff @(posedge clk_27M) begin
+        if (reset_counter < 4'd15) begin
+            reset_counter <= reset_counter + 4'd1;
+            reset <= 1'b1;
+        end else begin
+            reset <= 1'b0;
+        end
+    end
 
-`define TRANSFORM(n, NUM_LEDS) (((n) % ((NUM_LEDS) << 1) < (NUM_LEDS)) ? ((n) % ((NUM_LEDS) << 1)) : ((((NUM_LEDS) << 1) - 1) - ((n) % ((NUM_LEDS) << 1))))
+    // I2C signal declarations
+    wire scl_i, scl_o, scl_t;
+    wire sda_i, sda_o, sda_t;
 
+    // I2C tristate buffers
+    assign i2c_scl_pin = scl_t ? 1'bz : scl_o;
+    assign i2c_sda_pin = sda_t ? 1'bz : sda_o;
+    assign scl_i = i2c_scl_pin;
+    assign sda_i = i2c_sda_pin;
 
+    // I2C master interface signals
+    logic [6:0] i2c_cmd_addr;
+    logic i2c_cmd_start, i2c_cmd_read, i2c_cmd_write, i2c_cmd_write_multiple;
+    logic i2c_cmd_stop, i2c_cmd_valid;
+    wire i2c_cmd_ready;
+    logic [7:0] i2c_data_tdata;
+    logic i2c_data_valid, i2c_data_last;
+    wire i2c_data_ready;
+    wire [7:0] i2c_rx_data;
+    wire i2c_rx_valid, i2c_rx_last;
+    wire i2c_busy;
 
-
-  // Delay counter for 500 ms period.
-  reg [31:0] delay_reg = 0;
-  // Flag indicating if a transfer cycle is in progress.
-  reg        update_in_progress = 0;
-  // Counter used to step through each LED during a transfer cycle.
-  reg [31:0]  send_index = 0;
-  // This counter holds the index (0 to NUM_LEDS-1) of the LED to be turned on.
-  reg [31:0]  counter_9_bit = 0;
-
-  // 24-bit register for the RGB data to be sent.
-  reg [23:0] rgb_data_reg = 0;
-  wire [23:0] rgb_data = rgb_data_reg;
-
-  // LED driver control signals.
-  // 'led_ready_reg' is our driveable ready signal.
-  reg        led_ready_reg = 0;
-  reg        led_rst = 0;
-  wire       led_data_latched; // Pulses high for 1 clock when data is latched.
-  wire       led_busy;         // (Not used in this example)
-
-  // Instantiate the LED driver. Note that we pass our internal 'led_ready_reg' as the ready signal.
-  led_driver #(.CLK_FREQ(CLK_FREQ)) uut (
-      .clk(clk_27M),
-      .rst(led_rst),
-      .ready(led_ready_reg),
-      .rgb_data(rgb_data),
-      .busy(led_busy),
-      .data_latched(led_data_latched),
-      .led_out(led_out)
-  );
-
-// Host interface signals
-    reg  [6:0]  cmd_address_reg;
-    reg         cmd_start_reg;
-    reg         cmd_read_reg;
-    reg         cmd_write_reg;
-    reg         cmd_write_multiple_reg;
-    reg         cmd_stop_reg;
-    reg         cmd_valid_reg;
-    wire        cmd_ready;
-
-    reg  [7:0]  data_tdata_reg;
-    reg         data_tvalid_reg;
-    reg         data_tlast_reg;
-    wire        data_tready;
-
-    wire [7:0]  m_axis_data_tdata;
-    wire        m_axis_data_tvalid;
-    wire        m_axis_data_tlast;
-    reg         m_axis_data_tready_reg;
-
-    // I2C interface signals (internal wires)
-    wire        scl_i;
-    wire        scl_o;
-    wire        scl_t;
-    wire        sda_i;
-    wire        sda_o;
-    wire        sda_t;
-
-    // Status signals
-    wire        busy;
-    wire        bus_control;
-    wire        bus_active;
-    wire        missed_ack;
-
-    // Configuration signals
-    reg  [15:0] prescale_reg;
-    reg         stop_on_idle_reg;
-
-    // Instantiate the I2C master module
-    i2c_master u_i2c_master (
-        .clk                  (clk_27M),
-        .rst                  (led_rst),
-
-        .s_axis_cmd_address   (cmd_address_reg),
-        .s_axis_cmd_start     (cmd_start_reg),
-        .s_axis_cmd_read      (cmd_read_reg),
-        .s_axis_cmd_write     (cmd_write_reg),
-        .s_axis_cmd_write_multiple (cmd_write_multiple_reg),
-        .s_axis_cmd_stop      (cmd_stop_reg),
-        .s_axis_cmd_valid     (cmd_valid_reg),
-        .s_axis_cmd_ready     (cmd_ready),
-
-        .s_axis_data_tdata    (data_tdata_reg),
-        .s_axis_data_tvalid   (data_tvalid_reg),
-        .s_axis_data_tready   (data_tready),
-        .s_axis_data_tlast    (data_tlast_reg),
-
-        .m_axis_data_tdata    (m_axis_data_tdata),
-        .m_axis_data_tvalid   (m_axis_data_tvalid),
-        .m_axis_data_tready   (m_axis_data_tready_reg),
-        .m_axis_data_tlast    (m_axis_data_tlast),
-
-        .scl_i                (scl_i),
-        .scl_o                (scl_o),
-        .scl_t                (scl_t),
-        .sda_i                (sda_i),
-        .sda_o                (sda_o),
-        .sda_t                (sda_t),
-
-        .busy                 (busy),
-        .bus_control          (bus_control),
-        .bus_active           (bus_active),
-        .missed_ack           (missed_ack),
-
-        .prescale             (prescale_reg),
-        .stop_on_idle         (stop_on_idle_reg)
+    // Instantiate I2C master
+    i2c_master i2c (
+        .clk(clk_27M),
+        .rst(reset),
+        .s_axis_cmd_address(i2c_cmd_addr),
+        .s_axis_cmd_start(i2c_cmd_start),
+        .s_axis_cmd_read(i2c_cmd_read),
+        .s_axis_cmd_write(i2c_cmd_write),
+        .s_axis_cmd_write_multiple(i2c_cmd_write_multiple),
+        .s_axis_cmd_stop(i2c_cmd_stop),
+        .s_axis_cmd_valid(i2c_cmd_valid),
+        .s_axis_cmd_ready(i2c_cmd_ready),
+        .s_axis_data_tdata(i2c_data_tdata),
+        .s_axis_data_tvalid(i2c_data_valid),
+        .s_axis_data_tready(i2c_data_ready),
+        .s_axis_data_tlast(i2c_data_last),
+        .m_axis_data_tdata(i2c_rx_data),
+        .m_axis_data_tvalid(i2c_rx_valid),
+        .m_axis_data_tready(1'b1),
+        .m_axis_data_tlast(i2c_rx_last),
+        .scl_i(scl_i),
+        .scl_o(scl_o),
+        .scl_t(scl_t),
+        .sda_i(sda_i),
+        .sda_o(sda_o),
+        .sda_t(sda_t),
+        .busy(i2c_busy),
+        .prescale(16'h0043), // 100kHz @ 27MHz
+        .stop_on_idle(1'b0)
     );
 
-    // Tristate I2C bus connections:
-    // Connect the external scl/sda pins to the internal signals using tristate logic.
-    assign scl_i = i2c_scl_pin;
-    assign i2c_scl_pin    = scl_t ? 1'bz : scl_o;
+    // State machine
+    typedef enum {
+        INIT,
+        SOFT_RESET,
+        SEND_RESET_DATA_REG,
+        SEND_RESET_DATA_VAL,
+        WRITE_THRESHOLDS,
+        SEND_THRESHOLD_DATA_REG,
+        SEND_THRESHOLD_DATA_VAL,
+        ENABLE_ELECTRODE,
+        SEND_ENABLE_DATA_REG,
+        SEND_ENABLE_DATA_VAL,
+        SET_READ_ADDR,
+        SEND_ADDR_DATA,
+        READ_STATUS,
+        RECEIVE_DATA,
+        UPDATE_LED,
+        DELAY
+    } state_t;
 
-    assign sda_i = i2c_sda_pin;
-    assign i2c_sda_pin    = sda_t ? 1'bz : sda_o;
+    state_t current_state = INIT, next_state = INIT;
 
-  // Tie off unused outputs.
-  assign leds[0] = busy;
+    // Data buffers
+    logic [7:0] touch_status_low, touch_status_high;
+    logic [2:0] data_counter;
+    logic [23:0] delay_counter;
 
-  // Main state machine:
-  // - In IDLE (update_in_progress == 0): count for 500 ms.
-  // - Once delay expires, assert led_ready_reg to start a transfer cycle.
-  // - During the transfer cycle, on each led_data_latched pulse, update rgb_data_reg.
-  //   The LED whose index equals counter_9_bit is driven white (24'hFFFFFF) and others off.
-  // - When the entire chain (NUM_LEDS words) has been updated, deassert led_ready_reg,
-  //   finish the transfer, and increment counter_9_bit (wrapping around).
-  always_ff @(posedge clk_27M) begin
-    if (delay_reg < DELAY_CYCLES - 1) begin
-      delay_reg <= delay_reg + 1;
-    end
+    always_ff @(posedge clk_27M or posedge reset) begin
+        if (reset) begin
+            current_state <= INIT;
+            data_counter <= 0;
+            touch_status_low <= 0;
+            touch_status_high <= 0;
+            leds <= 0;
+            delay_counter <= 0;
+        end else begin
+            current_state <= next_state;
 
-    if (!update_in_progress && !led_busy) begin
-      // Not transferring: deassert ready.
-      led_ready_reg <= 0;
-      // Count the 500 ms delay.
-      if (delay_reg >= DELAY_CYCLES - 1) begin
-        delay_reg         <= 0;
-        update_in_progress<= 1;
-        send_index        <= 0;
-        led_ready_reg     <= 1;  // Begin transfer cycle.
-        // For the first LED in the chain, set rgb_data based on the current index.
-        if (0 == counter_9_bit)
-          rgb_data_reg <= 24'hFFFFFF;  // LED on (white)
-        else
-          rgb_data_reg <= 24'hFFFFFF;  // LED off
-      end
-    end
-    else begin
-      // In transfer cycle: each time data is latched, update for the next LED.
-      if (led_data_latched) begin
-        if (send_index < NUM_LEDS - 1) begin
-          send_index <= send_index + 1;
-          // Set the next LED's color: on (white) if its index equals counter_9_bit.
-          if ((send_index + 1) == `TRANSFORM(counter_9_bit, NUM_LEDS))
-            rgb_data_reg <= 24'hFFFFFF;
-          else
-            rgb_data_reg <= 24'hFFFFFF;
+            // Default values for I2C signals
+            i2c_cmd_start <= 1'b0;
+            i2c_cmd_read <= 1'b0;
+            i2c_cmd_write <= 1'b0;
+            i2c_cmd_stop <= 1'b0;
+            i2c_cmd_valid <= 1'b0;
+            i2c_data_valid <= 1'b0;
+            i2c_data_last <= 1'b0;
+            i2c_cmd_write_multiple <= 1'b0;
+
+            case (current_state)
+                INIT: begin
+                    data_counter <= 0;
+                    next_state <= SOFT_RESET;
+                end
+
+                SOFT_RESET: begin
+                    if (i2c_cmd_ready) begin
+                        // Write to soft reset register (0x80)
+                        i2c_cmd_addr <= 7'h5A;          // MPR121 address
+                        i2c_cmd_start <= 1'b1;
+                        i2c_cmd_write_multiple <= 1'b1;
+                        i2c_cmd_stop <= 1'b1;
+                        i2c_cmd_valid <= 1'b1;
+                        next_state <= SEND_RESET_DATA_REG;
+                    end
+                end
+
+                SEND_RESET_DATA_REG: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h80;        // Register address
+                        next_state <= SEND_RESET_DATA_VAL;
+                    end
+                end
+
+                SEND_RESET_DATA_VAL: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h63;        // Reset value
+                        i2c_data_last <= 1'b1;
+                        next_state <= WRITE_THRESHOLDS;
+                    end
+                end
+
+                WRITE_THRESHOLDS: begin
+                    if (i2c_cmd_ready) begin
+                        // Set touch threshold (0x41) to 0x0F
+                        i2c_cmd_addr <= 7'h5A;
+                        i2c_cmd_start <= 1'b1;
+                        i2c_cmd_write_multiple <= 1'b1;
+                        i2c_cmd_stop <= 1'b1;
+                        i2c_cmd_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h41;        // Touch threshold reg
+                        next_state <= SEND_THRESHOLD_DATA_REG;
+                    end
+                end
+
+                SEND_THRESHOLD_DATA_REG: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h41;        // Touch threshold reg
+                        next_state <= SEND_THRESHOLD_DATA_VAL;
+                    end
+                end
+
+                SEND_THRESHOLD_DATA_VAL: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h0F;        // Threshold value
+                        i2c_data_last <= 1'b1;
+                        next_state <= ENABLE_ELECTRODE;
+                    end
+                end
+
+                ENABLE_ELECTRODE: begin
+                    if (i2c_cmd_ready) begin
+                        // Enable electrode 0 (0x5E = 0x00)
+                        i2c_cmd_addr <= 7'h5A;
+                        i2c_cmd_start <= 1'b1;
+                        i2c_cmd_write_multiple <= 1'b1;
+                        i2c_cmd_stop <= 1'b1;
+                        i2c_cmd_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h5E;        // ECR register
+                        next_state <= SEND_ENABLE_DATA_REG;
+                    end
+                end
+
+                SEND_ENABLE_DATA_REG: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h5E;        // ECR register
+                        next_state <= SEND_ENABLE_DATA_VAL;
+                    end
+                end
+
+                SEND_ENABLE_DATA_VAL: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h0f;
+                        i2c_data_last <= 1'b1;
+                        next_state <= SET_READ_ADDR;
+                    end
+                end
+
+                SET_READ_ADDR: begin
+                    if (i2c_cmd_ready) begin
+                        // Set address pointer to 0x00
+                        i2c_cmd_addr <= 7'h5A;
+                        i2c_cmd_start <= 1'b1;
+                        i2c_cmd_write <= 1'b1;
+                        i2c_cmd_stop <= 1'b0;
+                        i2c_cmd_valid <= 1'b1;
+                        i2c_data_tdata <= 8'h00;        // Status register
+                        next_state <= SEND_ADDR_DATA;
+                    end
+                end
+
+                SEND_ADDR_DATA: begin
+                    if (i2c_data_ready) begin
+                        i2c_data_valid <= 1'b1;
+                        next_state <= READ_STATUS;
+                    end
+                end
+
+                READ_STATUS: begin
+                    if (i2c_cmd_ready) begin
+                        // Read two status bytes
+                        i2c_cmd_addr <= 7'h5A;
+                        i2c_cmd_start <= 1'b1;
+                        i2c_cmd_read <= 1'b1;
+                        i2c_cmd_stop <= 1'b1;
+                        i2c_cmd_write <= 1'b0;
+                        i2c_cmd_valid <= 1'b1;
+                        next_state <= RECEIVE_DATA;
+                    end
+                end
+
+                RECEIVE_DATA: begin
+                    if (i2c_rx_valid) begin
+                        next_state <= DELAY;
+                        leds[5:0] <= i2c_rx_data;
+                    end
+                end
+
+                DELAY: begin
+                    // Wait before next read
+                    if (delay_counter == 24'h000FFF) begin
+                        delay_counter <= 0;
+                        next_state <= SET_READ_ADDR;
+                    end else begin
+                        delay_counter <= delay_counter + 1;
+                    end
+                end
+
+                default: next_state <= INIT;
+            endcase
         end
-        else begin
-          // End of transfer: deassert ready and prepare for next cycle.
-          update_in_progress <= 0;
-          led_ready_reg      <= 0;
-          counter_9_bit <= counter_9_bit + 1;
-        end
-      end
     end
-  end
+
+    assign led_out = |leds;
 
 endmodule
