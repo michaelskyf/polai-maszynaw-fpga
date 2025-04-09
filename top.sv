@@ -75,6 +75,18 @@ module top (
         .stop_on_idle(1'b0)
     );
 
+    localparam ARRAY_LENGTH = 10;
+
+    led_controller_defs::cell_t lc_cells[ARRAY_LENGTH];
+    led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH)) lc (
+        .clk(clk_27M),
+        .rst(reset),
+        .cells(lc_cells),
+        .refresh_lock(0),
+        .refresh(1),
+        .led_out(led_out)
+    );
+
     // State machine
     typedef enum {
         INIT,
@@ -272,7 +284,5 @@ module top (
             endcase
         end
     end
-
-    assign led_out = |leds;
 
 endmodule

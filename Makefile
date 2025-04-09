@@ -6,7 +6,7 @@ all: top.fs
 
 # Synthesis
 top.json: top.sv
-	yosys -p "read_verilog -sv top.sv; synth_gowin -top top -json top.json"
+	yosys -m /home/skyflighter/Programming/maszynaw/yosys-slang/build/slang.so -p "read_slang top.sv; synth_gowin -top top -json top.json"
 
 # Place and Route
 top_pnr.json: top.json

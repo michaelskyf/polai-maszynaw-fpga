@@ -13,7 +13,7 @@ module led_driver_const_color #(
     output logic         led_out      // WS2812B serial output signal
 );
 
-logic rgb_data = data ? COLOR : 0;
+logic [23:0] rgb_data = data ? COLOR : 0;
 
 led_driver #(CLK_FREQ) drv (
     .clk(clk),

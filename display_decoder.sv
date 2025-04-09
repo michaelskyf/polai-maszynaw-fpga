@@ -14,7 +14,7 @@ typedef enum logic {
 } state_t;
 state_t state;
 
-reg [2:0] current_segment_reg;
+reg [2:0] current_segment_reg = 0;
 reg [3:0] current_digit_index_reg;
 reg busy_reg = 0;
 reg led_data_reg;
@@ -26,7 +26,7 @@ reg [6:0] segments;
 
 
 assign busy = busy_reg;
-assign led_data = led_data_reg;
+assign led_data = segments[current_segment_reg];
 
 always_comb begin
     case(current_digit)
@@ -49,30 +49,31 @@ always_ff @(posedge clk) begin
         state <= STATE_IDLE;
         busy_reg <= 0;
         current_digit_index_reg <= 0;
+        current_segment_reg <= 0;
     end else begin
         case (state)
             STATE_IDLE: begin
                 busy_reg <= 0;
+                digit_count_reg <= digit_count;
+                data_reg <= data;
+                current_segment_reg <= 0;
+                current_digit_index_reg <= 0;
 
                 if(next_led) begin
-                    digit_count_reg <= digit_count;
-                    data_reg <= data;
                     busy_reg <= 1;
-                    current_segment_reg <= 1;
-                    current_digit_index_reg <= 0;
-                    led_data_reg <= segments[0];
                     state <= STATE_PROCESSING;
+                    current_segment_reg <= 1;
                 end
             end
 
             STATE_PROCESSING: begin
                 if(next_led) begin
-                    led_data_reg <= segments[current_segment_reg];
                     current_segment_reg <= current_segment_reg + 1;
 
                     if(current_segment_reg >= 6) begin
                         current_segment_reg <= 0;
                         current_digit_index_reg <= current_digit_index_reg + 1;
+                        data_reg /= 10;
 
                         if(current_digit_index_reg + 1 >= digit_count_reg) begin
                             state = STATE_IDLE;
