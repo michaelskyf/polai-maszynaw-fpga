@@ -75,7 +75,7 @@ module top (
         .stop_on_idle(1'b0)
     );
 
-    localparam ARRAY_LENGTH = 2;
+    localparam ARRAY_LENGTH = 10;
 
     led_controller_defs::cell_t lc_cells[ARRAY_LENGTH];
     reg [9:0] counterxx;
@@ -87,12 +87,29 @@ module top (
                 timerxx <= 0;
                 counterxx <= counterxx + 1;
             end
+            lc_cells[0].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[0].data.led_data.value <= 1;
             lc_cells[1].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[1].data.led_data.value <= 1;
+            lc_cells[1].data.led_data.value <= 0;
+            lc_cells[2].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[2].data.led_data.value <= 1;
+            lc_cells[3].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[3].data.led_data.value <= 0;
 
-            lc_cells[0].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY;
-            lc_cells[0].data.display_data.value <= counterxx;
-            lc_cells[0].data.display_data.digit_count <= 3;
+            lc_cells[4].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY;
+            lc_cells[4].data.display_data.value <= 888;
+            lc_cells[4].data.display_data.digit_count <= 2;
+
+            lc_cells[5].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[5].data.led_data.value <= 1;
+            lc_cells[6].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[6].data.led_data.value <= 0;
+            lc_cells[7].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[7].data.led_data.value <= 1;
+            lc_cells[8].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[8].data.led_data.value <= 0;
+            lc_cells[9].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[9].data.led_data.value <= 1;
         end
     end
 

@@ -74,11 +74,12 @@ module led_controller #(
     output wire led_out
 );
 
-typedef enum logic [1:0] {
+typedef enum logic [2:0] {
     STATE_IDLE,
     STATE_PROCESSING_1,
     STATE_PROCESSING_2,
-    STATE_PROCESSING_3
+    STATE_PROCESSING_3,
+    STATE_PROCESSING_2A
 } state_t;
 state_t state;
 
@@ -150,15 +151,21 @@ always_ff @(posedge clk) begin
                 ldcc_ready <= 1;
 
                 if(ldcc_data_latched) begin
-                    ldcc_data <= ldm_led_out;
+                    ldm_decode_next_led <= 1;
+                    array_index <= array_index + 1;
+                    state <= STATE_PROCESSING_2A;
+                end
+            end
+            STATE_PROCESSING_2A: begin
+                state <= STATE_PROCESSING_2;
+                ldcc_data <= ldm_led_out;
+                ldcc_ready <= 1;
 
-                    if(ldm_busy) begin
-                        ldm_decode_next_led <= 1;
-                    end else begin
-                        array_index <= array_index + 1;
-                        if(array_index + 1 >= ARRAY_LENGTH) begin
-                            state <= STATE_PROCESSING_3;
-                        end
+                if(ldm_busy) begin
+                    array_index <= array_index - 1;
+                end else begin
+                    if(array_index >= ARRAY_LENGTH) begin
+                        state <= STATE_PROCESSING_3;
                     end
                 end
             end
