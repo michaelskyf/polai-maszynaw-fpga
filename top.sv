@@ -75,9 +75,27 @@ module top (
         .stop_on_idle(1'b0)
     );
 
-    localparam ARRAY_LENGTH = 10;
+    localparam ARRAY_LENGTH = 2;
 
     led_controller_defs::cell_t lc_cells[ARRAY_LENGTH];
+    reg [9:0] counterxx;
+    reg [31:0] timerxx;
+    always_ff @(posedge clk_27M) begin
+        begin
+            timerxx <= timerxx + 1;
+            if(timerxx == 27_000_000) begin
+                timerxx <= 0;
+                counterxx <= counterxx + 1;
+            end
+            lc_cells[1].cell_type <= led_controller_defs::CELL_TYPE_LED;
+            lc_cells[1].data.led_data.value <= 1;
+
+            lc_cells[0].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY;
+            lc_cells[0].data.display_data.value <= counterxx;
+            lc_cells[0].data.display_data.digit_count <= 3;
+        end
+    end
+
     led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH)) lc (
         .clk(clk_27M),
         .rst(reset),

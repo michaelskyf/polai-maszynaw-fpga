@@ -77,7 +77,8 @@ module led_controller #(
 typedef enum logic [1:0] {
     STATE_IDLE,
     STATE_PROCESSING_1,
-    STATE_PROCESSING_2
+    STATE_PROCESSING_2,
+    STATE_PROCESSING_3
 } state_t;
 state_t state;
 
@@ -148,7 +149,7 @@ always_ff @(posedge clk) begin
             STATE_PROCESSING_2: begin
                 ldcc_ready <= 1;
 
-                begin//if(ldcc_data_latched) begin
+                if(ldcc_data_latched) begin
                     ldcc_data <= ldm_led_out;
 
                     if(ldm_busy) begin
@@ -156,9 +157,14 @@ always_ff @(posedge clk) begin
                     end else begin
                         array_index <= array_index + 1;
                         if(array_index + 1 >= ARRAY_LENGTH) begin
-                            state <= STATE_IDLE;
+                            state <= STATE_PROCESSING_3;
                         end
                     end
+                end
+            end
+            STATE_PROCESSING_3: begin
+                if(!ldcc_busy) begin
+                    state <= STATE_IDLE;
                 end
             end
             default: begin

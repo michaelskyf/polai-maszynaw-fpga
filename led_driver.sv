@@ -53,7 +53,7 @@ module led_driver #(
    reg [23:0] latched_data;
 
    // State machine.
-   always_ff @(posedge clk or posedge rst) begin
+   always_ff @(posedge clk) begin
       if (rst) begin
          state            <= IDLE;
          bit_index        <= 0;

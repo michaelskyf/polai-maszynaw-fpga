@@ -2,7 +2,7 @@
 
 module led_driver_const_color #(
     parameter CLK_FREQ = 27_000_000,  // Clock frequency in Hz
-    parameter COLOR = 24'h00ff00         // LED color in ON state
+    parameter COLOR = 24'h000f00         // LED color in ON state
 )(
     input  logic         clk,
     input  logic         rst,
@@ -13,9 +13,10 @@ module led_driver_const_color #(
     output logic         led_out      // WS2812B serial output signal
 );
 
-logic [23:0] rgb_data = data ? COLOR : 0;
+wire [23:0] rgb_data;
+assign rgb_data = data ? COLOR : 0;
 
-led_driver #(CLK_FREQ) drv (
+led_driver #(.CLK_FREQ(CLK_FREQ)) drv (
     .clk(clk),
     .rst(rst),
     .ready(ready),
