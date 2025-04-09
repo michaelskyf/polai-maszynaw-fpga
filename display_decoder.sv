@@ -33,7 +33,7 @@ always_comb begin
         4'd0: segments = 7'b1111110;
         4'd1: segments = 7'b1000010;
         4'd2: segments = 7'b0110111;
-        4'd3: segments = 7'b0100101;
+        4'd3: segments = 7'b1100111;
         4'd4: segments = 7'b1001011;
         4'd5: segments = 7'b1101101;
         4'd6: segments = 7'b1111101;
@@ -62,7 +62,6 @@ always_ff @(posedge clk) begin
                 if(next_led) begin
                     busy_reg <= 1;
                     state <= STATE_PROCESSING;
-                    current_segment_reg <= 1;
                 end
             end
 
@@ -70,14 +69,16 @@ always_ff @(posedge clk) begin
                 if(next_led) begin
                     current_segment_reg <= current_segment_reg + 1;
 
-                    if(current_segment_reg >= 6) begin
-                        current_segment_reg <= 0;
-                        current_digit_index_reg <= current_digit_index_reg + 1;
-                        data_reg /= 10;
-
-                        if(current_digit_index_reg + 1 >= digit_count_reg) begin
+                    if(digit_count_reg - current_digit_index_reg <= 1) begin // last iteration
+                        if(current_segment_reg == 5) begin
                             state = STATE_IDLE;
                             busy_reg <= 0;
+                        end
+                    end else begin
+                        if(current_segment_reg >= 6) begin
+                            current_segment_reg <= 0;
+                            current_digit_index_reg <= current_digit_index_reg + 1;
+                            data_reg /= 10;
                         end
                     end
                 end
