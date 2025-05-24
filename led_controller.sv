@@ -64,7 +64,7 @@ endmodule
 
 module led_controller #(
     parameter ARRAY_LENGTH = 400,
-    parameter LED_COLOR = 24'h00ff00
+    parameter LED_COLOR = 24'h0f0000
 )(
     input wire clk,
     input wire rst,
@@ -114,7 +114,7 @@ reg ldcc_data;
 
 assign led_out = ldcc_led_out;
 
-led_driver_const_color ldcc(
+led_driver_const_color #(.COLOR(LED_COLOR)) ldcc(
     .clk(clk),
     .rst(rst),
     .ready(ldcc_ready),

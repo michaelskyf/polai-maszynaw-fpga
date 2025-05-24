@@ -4,6 +4,7 @@
 module top (
     input  clk_27M,
     output logic led_out,
+    output logic led_out2,
     output logic [5:0] leds,
 
     inout  wire       i2c_scl_pin,  // I2C SCL
@@ -14,6 +15,7 @@ module top (
     logic reset = 1'b1;
     logic [3:0] reset_counter = 4'd0;
     always_ff @(posedge clk_27M) begin
+
         if (reset_counter < 4'd15) begin
             reset_counter <= reset_counter + 4'd1;
             reset <= 1'b1;
@@ -75,44 +77,34 @@ module top (
         .stop_on_idle(1'b0)
     );
 
-    localparam ARRAY_LENGTH = 11;
+    `define SET_LEDS(cells, indices, len, val) \
+        for(int i = 0; i < len; i++) begin \
+            int idx; \
+            idx = indices[i]; \
+            cells[idx].cell_type <= led_controller_defs::CELL_TYPE_LED; \
+            cells[idx].data.led_data.value <= val; \
+        end
+
+
+    `define SET_DISPLAY(cells, index, _digit_count, val) \
+        cells[index].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY; \
+        cells[index].data.display_data.digit_count <= _digit_count; \
+        cells[index].data.display_data.value <= val;
+
+    localparam ARRAY_LENGTH = 4;
+
+    localparam WEA_LED_LEN = 3;
+    int wea_indices[WEA_LED_LEN] = '{0, 1, 2};
 
     led_controller_defs::cell_t lc_cells[ARRAY_LENGTH];
-    reg [9:0] counterxx;
-    reg [31:0] timerxx;
+    led_controller_defs::cell_t lc_cells2[ARRAY_LENGTH];
     always_ff @(posedge clk_27M) begin
         begin
-            timerxx <= timerxx + 1;
-            if(timerxx == 27_000_000) begin
-                timerxx <= 0;
-                counterxx <= counterxx + 1;
-            end
-            lc_cells[0].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[0].data.led_data.value <= 1;
-            lc_cells[1].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[1].data.led_data.value <= 0;
-            lc_cells[2].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[2].data.led_data.value <= 1;
-            lc_cells[3].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[3].data.led_data.value <= 0;
-
-            lc_cells[4].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY;
-            lc_cells[4].data.display_data.value <= counterxx;
-            lc_cells[4].data.display_data.digit_count <= 2;
-            lc_cells[5].cell_type <= led_controller_defs::CELL_TYPE_DISPLAY;
-            lc_cells[5].data.display_data.value <= counterxx;
-            lc_cells[6].data.display_data.digit_count <= 2;
-
-            lc_cells[6].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[6].data.led_data.value <= 1;
-            lc_cells[7].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[7].data.led_data.value <= 0;
-            lc_cells[8].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[8].data.led_data.value <= 1;
-            lc_cells[9].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[9].data.led_data.value <= 0;
-            lc_cells[10].cell_type <= led_controller_defs::CELL_TYPE_LED;
-            lc_cells[10].data.led_data.value <= 1;
+            // A Reg
+            `SET_DISPLAY(lc_cells, 0, 1, 101);
+            `SET_DISPLAY(lc_cells, 1, 1, 101);
+            `SET_DISPLAY(lc_cells, 2, 1, 101);
+            `SET_DISPLAY(lc_cells, 3, 1, 101);
         end
     end
 
@@ -123,6 +115,15 @@ module top (
         .refresh_lock(0),
         .refresh(1),
         .led_out(led_out)
+    );
+
+    led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH)) lc2 (
+        .clk(clk_27M),
+        .rst(reset),
+        .cells(lc_cells2),
+        .refresh_lock(0),
+        .refresh(1),
+        .led_out(led_out2)
     );
 
     // State machine
