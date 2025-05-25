@@ -30,17 +30,12 @@ module display_decoder_tb;
         forever #5 clk = ~clk;  // toggle every 5 ns
     end
     
-    // Generate VCD dump file for waveform viewing
-    initial begin
-        // Set the VCD filename. This file will be created in your simulation directory.
-        $dumpfile("display_decoder.vcd");
-        // Dump all signals in the top-level testbench. Adjust the hierarchy as needed.
-        //$dumpvars(0, display_decoder_tb);
-        $dumpvars(0, uut);
-    end
-    
     // Stimulus process
     initial begin
+
+        $dumpfile("display_decoder.vcd");
+        $dumpvars(0, display_decoder_tb);
+        $dumpvars(1, display_decoder_tb.uut);
         // Initialize inputs
         rst         = 1;
         digit_count = 2'b00;
@@ -57,59 +52,60 @@ module display_decoder_tb;
         // Test Case 1:
         // Provide a 2-digit display request with data "25".
         digit_count = 2'b10;  // two digits to display
-        data        = 16'd25;  // data input
+        data        = 16'd1;  // data input
+        #10;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100;
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low
-        #10
+        #100
         next_led    = 1;       // trigger a new display update
         #10;
         next_led    = 0;       // return next_led to low

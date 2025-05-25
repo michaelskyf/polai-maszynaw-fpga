@@ -100,11 +100,13 @@ module top (
     led_controller_defs::cell_t lc_cells2[ARRAY_LENGTH];
     always_ff @(posedge clk_27M) begin
         begin
+            `SET_LEDS(lc_cells, wea_indices, 1, 0);
+
             // A Reg
             `SET_DISPLAY(lc_cells, 0, 1, 101);
-            `SET_DISPLAY(lc_cells, 1, 1, 101);
+            `SET_DISPLAY(lc_cells, 1, 1, 8);
             `SET_DISPLAY(lc_cells, 2, 1, 101);
-            `SET_DISPLAY(lc_cells, 3, 1, 101);
+            `SET_DISPLAY(lc_cells, 3, 1, 8);
         end
     end
 

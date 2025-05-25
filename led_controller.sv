@@ -77,6 +77,7 @@ module led_controller #(
 typedef enum logic [2:0] {
     STATE_IDLE,
     STATE_PROCESSING_1,
+    STATE_PROCESSING_1A,
     STATE_PROCESSING_2,
     STATE_PROCESSING_3,
     STATE_PROCESSING_2A
@@ -144,6 +145,9 @@ always_ff @(posedge clk) begin
             end
             STATE_PROCESSING_1: begin
                 ldm_decode_next_led <= 1;
+                state <= STATE_PROCESSING_1A;
+            end
+            STATE_PROCESSING_1A: begin
                 ldcc_data <= ldm_led_out;
                 state <= STATE_PROCESSING_2;
             end

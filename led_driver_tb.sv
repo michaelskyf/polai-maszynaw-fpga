@@ -1,3 +1,5 @@
+`include "led_driver.sv"
+
 `timescale 1ns/1ps
 module tb_led_driver;
 

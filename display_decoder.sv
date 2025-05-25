@@ -1,7 +1,9 @@
+`define DIGIT_COUNT_WIDTH 2
+
 module display_decoder (
     input wire clk,
     input wire rst,
-    input wire [1:0] digit_count,
+    input wire [`DIGIT_COUNT_WIDTH-1:0] digit_count,
     input wire [15:0] data,
     input wire next_led,
     output wire led_data,
@@ -14,6 +16,9 @@ typedef enum logic {
 } state_t;
 state_t state;
 
+`define DECIMAL_DIGITS(W)  (  (((W)*1233 + 4095) / 4096)  )
+
+
 reg [2:0] current_segment_reg = 0;
 reg [3:0] current_digit_index_reg;
 reg busy_reg = 0;
@@ -22,27 +27,23 @@ reg [1:0] digit_count_reg;
 reg [15:0] data_reg;
 wire [4:0] current_digit = data_reg % 10;
 
-reg [6:0] segments;
+wire [6:0] segments;
 
 
 assign busy = busy_reg;
 assign led_data = segments[current_segment_reg];
 
-always_comb begin
-    case(current_digit)
-        4'd0: segments = 7'b1111110;
-        4'd1: segments = 7'b1000010;
-        4'd2: segments = 7'b0110111;
-        4'd3: segments = 7'b1100111;
-        4'd4: segments = 7'b1001011;
-        4'd5: segments = 7'b1101101;
-        4'd6: segments = 7'b1111101;
-        4'd7: segments = 7'b1000111;
-        4'd8: segments = 7'b1111111;
-        4'd9: segments = 7'b1101111;
-        default: segments = 7'b1111111;
-    endcase
-end
+assign segments = (current_digit == 4'd0) ? 7'b1111110 :
+                  (current_digit == 4'd1) ? 7'b1000010 :
+                  (current_digit == 4'd2) ? 7'b0110111 :
+                  (current_digit == 4'd3) ? 7'b1100111 :
+                  (current_digit == 4'd4) ? 7'b1001011 :
+                  (current_digit == 4'd5) ? 7'b1101101 :
+                  (current_digit == 4'd6) ? 7'b1111101 :
+                  (current_digit == 4'd7) ? 7'b1000111 :
+                  (current_digit == 4'd8) ? 7'b1111111 :
+                  (current_digit == 4'd9) ? 7'b1101111 :
+                  7'b1011110;
 
 always_ff @(posedge clk) begin
     if(rst) begin
@@ -54,12 +55,12 @@ always_ff @(posedge clk) begin
         case (state)
             STATE_IDLE: begin
                 busy_reg <= 0;
-                digit_count_reg <= digit_count;
-                data_reg <= data;
-                current_segment_reg <= 0;
-                current_digit_index_reg <= 0;
-
+                
                 if(next_led) begin
+                    digit_count_reg <= digit_count;
+                    data_reg <= data;
+                    current_digit_index_reg <= 0;
+                    current_segment_reg <= 0;
                     busy_reg <= 1;
                     state <= STATE_PROCESSING;
                 end
