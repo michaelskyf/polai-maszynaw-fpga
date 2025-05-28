@@ -221,9 +221,6 @@ module top (
         SOFT_RESET             ,
         SEND_RESET_DATA_REG    ,
         SEND_RESET_DATA_VAL    ,
-        WRITE_THRESHOLDS       ,
-        SEND_THRESHOLD_DATA_REG,
-        SEND_THRESHOLD_DATA_VAL,
         SET_READ_ADDR          ,
         SEND_ADDR_DATA         ,
         READ_STATUS            ,
@@ -294,7 +291,7 @@ module top (
             case (current_state)
                 SOFT_RESET: begin
                     // Write to soft reset register (0x80)
-                    if (i2c_cmd_ready) begin
+                    if (i2c_cmd_valid && i2c_cmd_ready) begin
                         current_state <= SEND_RESET_DATA_REG;
                     end else begin
                         i2c_cmd_addr <= 7'h5A;          // MPR121 address
@@ -306,7 +303,7 @@ module top (
                 end
 
                 SEND_RESET_DATA_REG: begin
-                    if (i2c_data_ready) begin
+                    if (i2c_data_valid && i2c_data_ready) begin
                         current_state <= SEND_RESET_DATA_VAL;
                     end else begin
                         i2c_data_valid <= 1'b1;
@@ -315,8 +312,8 @@ module top (
                 end
 
                 SEND_RESET_DATA_VAL: begin
-                    if (i2c_data_ready) begin
-                        current_state <= WRITE_THRESHOLDS;
+                    if (i2c_data_valid && i2c_data_ready) begin
+                        current_state <= SEND_ECR;
                     end else begin
                         i2c_data_valid <= 1'b1;
                         i2c_data_tdata <= 8'h63;        // Reset value
@@ -324,42 +321,9 @@ module top (
                     end
                 end
 
-                WRITE_THRESHOLDS: begin
-                    // Set touch threshold (0x41) to 0x0F
-                    if (i2c_cmd_ready) begin
-                        current_state <= SEND_THRESHOLD_DATA_REG;
-                    end else begin
-                        i2c_cmd_addr <= 7'h5A;
-                        i2c_cmd_start <= 1'b1;
-                        i2c_cmd_write_multiple <= 1'b1;
-                        i2c_cmd_stop <= 1'b1;
-                        i2c_cmd_valid <= 1'b1;
-                        i2c_data_tdata <= 8'h41;        // Touch threshold reg
-                    end
-                end
-
-                SEND_THRESHOLD_DATA_REG: begin
-                    if (i2c_data_ready) begin
-                        current_state <= SEND_THRESHOLD_DATA_VAL;
-                    end else begin
-                        i2c_data_valid <= 1'b1;
-                        i2c_data_tdata <= 8'h41;        // Touch threshold reg
-                    end
-                end
-
-                SEND_THRESHOLD_DATA_VAL: begin
-                    if (i2c_data_ready) begin
-                        current_state <= SEND_ECR;
-                    end else begin
-                        i2c_data_valid <= 1'b1;
-                        i2c_data_tdata <= 8'h0F;        // Threshold value
-                        i2c_data_last <= 1'b1;
-                    end
-                end
-
                 // ─── FINALLY: ENABLE ALL ELECTRODES (ECR) ──────────────────────────────────
                 SEND_ECR: begin
-                    if (i2c_cmd_ready) begin
+                    if (i2c_cmd_valid && i2c_cmd_ready) begin
                         current_state <= SEND_ECR_REG;
                     end else begin
                         i2c_cmd_addr          <= 7'h5A;
@@ -370,7 +334,7 @@ module top (
                     end
                 end
                 SEND_ECR_REG: begin
-                    if (i2c_data_ready) begin
+                    if (i2c_data_valid && i2c_data_ready) begin
                         current_state <= SEND_ECR_VAL;
                     end else begin
                         i2c_data_valid <= 1'b1;
@@ -378,7 +342,7 @@ module top (
                     end
                 end
                 SEND_ECR_VAL: begin
-                    if (i2c_data_ready) begin
+                    if (i2c_data_valid && i2c_data_ready) begin
                         current_state <= SET_READ_ADDR;
                     end else begin
                         i2c_data_valid <= 1'b1;
@@ -389,7 +353,7 @@ module top (
 
                 SET_READ_ADDR: begin
                     // Set address pointer to 0x00
-                    if (i2c_cmd_ready) begin
+                    if (i2c_cmd_valid && i2c_cmd_ready) begin
                         current_state <= SEND_ADDR_DATA;
                     end else begin
                         i2c_cmd_addr <= 7'h5A;
@@ -401,7 +365,7 @@ module top (
                 end
 
                 SEND_ADDR_DATA: begin
-                    if (i2c_data_ready) begin
+                    if (i2c_data_valid && i2c_data_ready) begin
                         current_state <= READ_STATUS;
                     end else begin
                         i2c_data_tdata <= 8'h00;        // Status register
@@ -411,9 +375,8 @@ module top (
 
                 READ_STATUS: begin
                     // Read two status bytes
-                    if (i2c_cmd_ready) begin
+                    if (i2c_cmd_valid && i2c_cmd_ready) begin
                         current_state <= RECEIVE_DATA;
-                        i2c_m_data_ready <= 1;
                     end else begin
                         i2c_cmd_addr <= 7'h5A;
                         i2c_cmd_start <= 1'b1;
@@ -424,7 +387,7 @@ module top (
                 end
 
                 RECEIVE_DATA: begin
-                    if (i2c_rx_valid) begin
+                    if (i2c_m_data_ready && i2c_rx_valid) begin
                         current_state <= SET_READ_ADDR;
                         i2c_m_data_ready <= 0;
                         `TOGGLE_BUTTON(przep, przep_timer, i2c_rx_data[0]);
