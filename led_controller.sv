@@ -64,7 +64,7 @@ endmodule
 
 module led_controller #(
     parameter ARRAY_LENGTH = 400,
-    parameter LED_COLOR = 24'h0f0000
+    parameter LED_COLOR = 24'h010000
 )(
     input wire clk,
     input wire rst,
@@ -95,12 +95,13 @@ reg ldm_decode_next_led;
 led_controller_defs::cell_t ldm_data;
 wire ldm_busy;
 wire ldm_led_out;
+reg ldm_rst;
 
 assign ldm_data = current_cell;
 
 led_decoder_multiplexer ldm(
     .clk(clk),
-    .rst(rst),
+    .rst(ldm_rst),
     .decode_next_led(ldm_decode_next_led),
     .data(ldm_data),
     .busy(ldm_busy),
@@ -112,12 +113,15 @@ wire ldcc_data_latched;
 wire ldcc_led_out;
 reg ldcc_ready;
 reg ldcc_data;
+reg ldcc_rst;
+
+reg [63:0] dbg = 0;
 
 assign led_out = ldcc_led_out;
 
 led_driver_const_color #(.COLOR(LED_COLOR)) ldcc(
     .clk(clk),
-    .rst(rst),
+    .rst(ldcc_rst),
     .ready(ldcc_ready),
     .data(ldcc_data),
     .busy(ldcc_busy),
@@ -129,6 +133,9 @@ always_ff @(posedge clk) begin
     if(rst) begin
         refresh_reg <= 0;
         state <= STATE_IDLE;
+        ldm_rst <= 1;
+        ldcc_rst <= 1;
+        dbg <= 0;
     end else begin
         refresh_reg <= refresh_reg | refresh;
         ldm_decode_next_led <= 0;
@@ -141,6 +148,8 @@ always_ff @(posedge clk) begin
                     refresh_reg <= 0;
                     cells_reg <= cells;
                     array_index <= 0;
+                    ldm_rst <= 0;
+                    ldcc_rst <= 0;
                 end
             end
             STATE_PROCESSING_1: begin
@@ -153,28 +162,28 @@ always_ff @(posedge clk) begin
             end
             STATE_PROCESSING_2: begin
                 ldcc_ready <= 1;
+                ldcc_data <= ldm_led_out;
 
                 if(ldcc_data_latched) begin
-                    ldm_decode_next_led <= 1;
-                    array_index <= array_index + 1;
                     state <= STATE_PROCESSING_2A;
+                    if(!ldm_busy) begin
+                        array_index <= array_index + 1;
+                    end
                 end
             end
             STATE_PROCESSING_2A: begin
                 state <= STATE_PROCESSING_2;
-                ldcc_data <= ldm_led_out;
                 ldcc_ready <= 1;
+                ldm_decode_next_led <= 1;
 
-                if(ldm_busy) begin
-                    array_index <= array_index - 1;
-                end else begin
-                    if(array_index >= ARRAY_LENGTH) begin
-                        state <= STATE_PROCESSING_3;
-                    end
+                if(array_index >= ARRAY_LENGTH) begin
+                    state <= STATE_PROCESSING_3;
                 end
             end
             STATE_PROCESSING_3: begin
                 if(!ldcc_busy) begin
+                    ldm_rst <= 1;
+                    ldcc_rst <= 1;
                     state <= STATE_IDLE;
                 end
             end

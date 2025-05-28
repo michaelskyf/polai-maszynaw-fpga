@@ -13,12 +13,12 @@ module led_driver #(
 
    // WS2812B timing specifications (in seconds):
    //   T0H: ~0.35 µs, T1H: ~0.9 µs, total bit time: ~1.25 µs, reset pulse: >50 µs.
-   localparam real T0H_time   = 0.4e-6;
+   localparam real T0H_time   = 0.30e-6;
    localparam real T1H_time   = 0.8e-6;
-   localparam real T0L_time   = 0.85e-6;
-   localparam real T1L_time   = 0.45e-6;
+   localparam real T0L_time   = 0.75e-6;
+   localparam real T1L_time   = 0.35e-6;
    localparam real BIT_time   = 1.25e-6;
-   localparam real RESET_time = 50e-6;
+   localparam real RESET_time = 100e-6;
 
    // Calculate timing parameters (in clock cycles) based on CLK_FREQ.
    localparam int T0H          = $rtoi(T0H_time   * CLK_FREQ + 0.5);
@@ -61,6 +61,8 @@ module led_driver #(
          led_out          <= 0;
          busy_reg         <= 0;
          data_latched_reg <= 0;
+         latched_data <= 0;
+         current_bit <= 0;
       end else begin
          // Default: no latch pulse.
          data_latched_reg <= 0;
