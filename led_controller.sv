@@ -64,7 +64,7 @@ endmodule
 
 module led_controller #(
     parameter ARRAY_LENGTH = 400,
-    parameter LED_COLOR = 24'h010000
+    parameter LED_COLOR = 24'h090000
 )(
     input wire clk,
     input wire rst,
