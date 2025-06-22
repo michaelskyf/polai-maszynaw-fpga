@@ -2,7 +2,7 @@ module maszyna_w_core2 #(
     // CPU word width
     parameter WORD_WIDTH = 32,
     // CPU address bus width (<WORD_WIDTH)
-    parameter ADDRESS_WIDTH = 16,
+    parameter ADDRESS_WIDTH = 8,
     // CPU instruction opcode width
     parameter KOD_WIDTH = WORD_WIDTH - ADDRESS_WIDTH
 ) (
@@ -42,10 +42,12 @@ module maszyna_w_core2 #(
 
     // Local registers' derivative registers
     output [KOD_WIDTH-1:0] KOD,
-    output [ADDRESS_WIDTH-1:0] ADRES
+    output [ADDRESS_WIDTH-1:0] ADRES,
+    output wire [WORD_WIDTH-1:0] pao [0:2**ADDRESS_WIDTH-1]
 
 );
     reg [WORD_WIDTH-1:0] memory [0:2**ADDRESS_WIDTH-1];
+    assign pao = memory;
 
     assign ZF = Ak[WORD_WIDTH-1];
     assign ZAK = Ak == 0;
