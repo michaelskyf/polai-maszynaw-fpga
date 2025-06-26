@@ -327,6 +327,8 @@ module top (
                 end
 
                 1: begin
+                    rx_state <= 0;
+
                     case (uart_data_reg)
                         "i": il    <= ~il;      // toggle il
                         "e": wel   <= ~wel;     // toggle wel
@@ -344,8 +346,32 @@ module top (
                         "z": pisz  <= ~pisz;    // toggle pisz
                         "s": wes   <= ~wes;     // toggle wes
                         "x": wys   <= ~wys;     // toggle wys
-                        "t": takt  <= 1; // Run maszyna w clock
+                        "t": begin // Run maszyna W clock
+                            takt <= 1;
+
+                            rx_state <= 2;
+                        end
                     endcase
+                end
+
+                2: begin
+                    il <= 0;
+                    wel <= 0;
+                    wyl <= 0;
+                    wyad <= 0;
+                    wei <= 0;
+                    _weak <= 0;
+                    dod <= 0;
+                    ode <= 0;
+
+                    przep <= 0;
+                    wyak <= 0;
+                    weja <= 0;
+                    wea <= 0;
+                    czyt <= 0;
+                    pisz <= 0;
+                    wes <= 0;
+                    wys <= 0;
 
                     rx_state <= 0;
                 end
