@@ -209,23 +209,23 @@ module top (
         end
     end
 
-    // led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH)) lc (
-    //     .clk(clk_27M),
-    //     .rst(reset),
-    //     .cells(lc_cells),
-    //     .refresh_lock(0),
-    //     .refresh(1),
-    //     .led_out(led_out)
-    // );
+	led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH)) lc (
+	    .clk(clk_27M),
+	    .rst(reset),
+	    .cells(lc_cells),
+	    .refresh_lock(0),
+	    .refresh(1),
+	    .led_out(led_out)
+	);
 
-    // led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH2)) lc2 (
-    //     .clk(clk_27M),
-    //     .rst(reset),
-    //     .cells(lc_cells2),
-    //     .refresh_lock(0),
-    //     .refresh(1),
-    //     .led_out(led_out2)
-    // );
+	led_controller #(.ARRAY_LENGTH(ARRAY_LENGTH2)) lc2 (
+	    .clk(clk_27M),
+	    .rst(reset),
+	    .cells(lc_cells2),
+	    .refresh_lock(0),
+	    .refresh(1),
+	    .led_out(led_out2)
+	);
 
     wire [31:0] mwc2_signals;
     wire [31:0] mwc2_signal_error;

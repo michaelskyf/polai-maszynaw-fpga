@@ -5,7 +5,7 @@ IO_LOC "led_out" 39;
 IO_LOC "i2c_scl_pin" 37;
 IO_LOC "i2c_sda_pin" 36;
 IO_LOC "uart_rx" 18;
-IO_LOC "uart_tx" 40;
+IO_LOC "uart_tx" 17;
 
 IO_LOC  "leds[0]" 10;
 IO_LOC  "leds[1]" 11;
@@ -18,5 +18,36 @@ IO_PORT "led_out" IO_TYPE=LVCMOS33;
 IO_PORT "led_out2" IO_TYPE=LVCMOS33;
 IO_PORT "i2c_scl_pin" PULL_MODE=UP IO_TYPE=LVCMOS33;
 IO_PORT "i2c_sda_pin" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_PORT "uart_rx" IO_TYPE=LVCMOS33;
-IO_PORT "uart_tx" IO_TYPE=LVCMOS33;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+# Clock and Reset
+IO_LOC "clk" 35;
+IO_PORT "clk" PULL_MODE=NONE;
+IO_LOC "reset_n" 15;
+IO_PORT "reset_n" PULL_MODE=UP;
+
+# Button Matrix Rows (Outputs)
+IO_LOC "rows[0]" 16;
+IO_PORT "rows[0]" DRIVE=8;
+IO_LOC "rows[1]" 17;
+IO_PORT "rows[1]" DRIVE=8;
+IO_LOC "rows[2]" 18;
+IO_PORT "rows[2]" DRIVE=8;
+IO_LOC "rows[3]" 19;
+IO_PORT "rows[3]" DRIVE=8;
+
+# Button Matrix Columns (Inputs with pull-ups)
+IO_LOC "cols[0]" 20;
+IO_PORT "cols[0]" PULL_MODE=UP;
+IO_LOC "cols[1]" 21;
+IO_PORT "cols[1]" PULL_MODE=UP;
+IO_LOC "cols[2]" 22;
+IO_PORT "cols[2]" PULL_MODE=UP;
+IO_LOC "cols[3]" 23;
+IO_PORT "cols[3]" PULL_MODE=UP;
+
+# Run Button (KEY1)
+IO_LOC "run_button_n" 24;
+IO_PORT "run_button_n" PULL_MODE=UP;
